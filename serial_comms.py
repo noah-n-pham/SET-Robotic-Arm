@@ -9,8 +9,8 @@ ser = serial.Serial(PORT, BAUD, timeout=1)
 time.sleep(2)  # allow Arduino reset
 
 # --- Arm setup ---
-L1 = 10.0  # change later
-L2 = 10.0
+L1 = 10.16  # cm, change later
+L2 = 10.16
 
 
 def inverse_kinematics(x, y, L1, L2):
