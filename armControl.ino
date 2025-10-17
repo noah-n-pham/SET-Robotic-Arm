@@ -1,30 +1,38 @@
 #include <Servo.h> // necessary for using servo
 
-
 // Looked it up and it looks like this will take 2 servos so 
-Servo armXServo; // pin 9
-Servo armYServo; // pin 10
+//Servo armXServo; // pin 9
+//Servo armYServo; // pin 10
 
 // servo pins
 int xPin = 9;
 int yPin = 10;
+int ledPin = 11;
 
 // initial positioning (centered) 
 int targetX = 90;
 int targetY = 90;
+
 
 void setup() {
   // put your setup code here, to run once:
   // begin serial communication (9600 is apparently the standard value)
   Serial.begin(9600);
 
+  Serial.println("Program start: success");
+
   // attach/enable servos
-  armXServo.attach(xPin);
-  armYServo.attach(yPin);
+  // armXServo.attach(xPin);
+  // armYServo.attach(yPin);
   
+  pinMode(ledPin, OUTPUT);
+  Serial.println("Pins attached: success");
+
   // center servos
-  armXServo.write(targetX);
-  armYServo.write(targetY);
+  // armXServo.write(targetX);
+  // armYServo.write(targetY);
+
+  Serial.println("Servos centered: success");
 }
 
 void loop() {
@@ -32,6 +40,13 @@ void loop() {
   // if Serial is talking to us (there is something there), read in the position of the thing
   if (Serial.available() > 0) {
     String data = Serial.readStringUntil('\n');
+
+    Serial.println("Angles received: success");
+    digitalWrite(ledPin, HIGH);
+    delay(1000);
+    digitalWrite(ledPin, LOW);
+    delay(1000);
+
 
     // data will come as  "Theta1 Theta2"
     // parse to find spaces, substring to properly store 
@@ -47,9 +62,12 @@ void loop() {
       // then read to the end after the comma (theta2)
       String second = data.substring(commaIndex + 1);
 
+      
       // convert strings to integers
       int targetX = first.toInt();
       int targetY = second.toInt();
+
+      Serial.println("Angles parsed: success");
 
       // constrain the targets so they don't do stupid things
       // 0-180 looks like the max range of motion for a servo
@@ -57,12 +75,19 @@ void loop() {
       targetY = constrain(targetY, 0, 180);
 
       // go there!
-      armXServo.write(targetX);
-      armYServo.write(targetY);
+      // armXServo.write(targetX);
+      // armYServo.write(targetY);
+
+      Serial.println("Target Reached: success");
+      digitalWrite(ledPin, HIGH);
+      delay(1000);
+      digitalWrite(ledPin, LOW);
+      delay(1000);
+
+
     }
   }
 
   // I think I'm supposed to put a delay here so the servos don't die
   delay(15);
 }
-
