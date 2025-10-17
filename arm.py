@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 import cv2
+import cv2.aruco as aruco
 import serial
 
 port = '/dev/ttyACM0' 
@@ -63,17 +64,17 @@ while True:
                 (0, 255, 0),
                 2
             )
-        annotated_frame = r.plot()  # returns frame with boxes/labels drawn
+            annotated_frame = r.plot()  # returns frame with boxes/labels drawn
 
-        # Display the annotated frame
-        cv2.imshow("YOLOv8 Real-Time", annotated_frame)
+            # Display the annotated frame
+            cv2.imshow("YOLOv8 Real-Time", annotated_frame)
 
-        time.sleep(2)
-        # Send the result to Arduino
-        x,y = (x1 + x2)/2, (y1 + y2)/2
-        message = f"{x},{y}"
-        arduino.write((message + '\n').encode())
-        print("Sent:", message)
+            time.sleep(2)
+            # Send the result to Arduino
+            x,y = (x1 + x2)/2, (y1 + y2)/2
+            message = f"{x},{y}"
+            arduino.write((message + '\n').encode())
+            print("Sent:", message)
 
     # Press 'q' to quit
     if cv2.waitKey(1) & 0xFF == ord("q"):
