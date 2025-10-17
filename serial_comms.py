@@ -37,7 +37,11 @@ def send_angles(theta1, theta2):
 # tests
 points = [(10, 0), (10, 10), (5, 10), (10, 5)]
 for (x, y) in points:
-    t1, t2 = inverse_kinematics(x, y, L1, L2)
+    theta1_deg, theta2_deg = inverse_kinematics(x, y, L1, L2)
+
+    # Clamp to 0–180 range (for most hobby servos)
+    theta1_deg = max(0, min(180, theta1_deg + 90))  # shift up by 90° if neutral at 90
+    theta2_deg = max(0, min(180, theta2_deg + 90))
     send_angles(t1, t2)
     time.sleep(2)
 
