@@ -19,6 +19,15 @@ for i in range(num_joints):
 
 # 4. Simulation loop
 t = 0
+
+p.resetDebugVisualizerCamera(
+    cameraDistance=1.0,  # distance from target
+    cameraYaw=50,        # rotation around vertical axis (degrees)
+    cameraPitch=-30,     # up/down tilt (degrees)
+    cameraTargetPosition=[0, 0, 0]  # what the camera points at
+)
+
+
 while True:
     # Example: simple sinusoidal motion for all 3 joints
     joint_positions = [
