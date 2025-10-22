@@ -5,7 +5,7 @@ import serial
 
 port = '/dev/ttyACM0' 
 
-arduino = serial.Serial(port=port, baudrate=9600, timeout=1)
+# arduino = serial.Serial(port=port, baudrate=9600, timeout=1)
 
 
 # Load YOLOv8n model
