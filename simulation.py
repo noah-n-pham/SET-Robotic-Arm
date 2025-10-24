@@ -35,42 +35,9 @@ while True:
     # Read slider values
     joint_positions = [p.readUserDebugParameter(sliders[i]) for i in range(num_joints)]
     
-    # Move joints directly without swaying
-    # for i in range(num_joints):
-    #     p.setJointMotorControl2(
-    #         robot_id,
-    #         i,
-    #         controlMode=p.POSITION_CONTROL,
-    #         targetPosition=joint_positions[i],
-    #         force=500,
-    #         positionGain=1.0,
-    #         velocityGain=1.0
-    #     )
+    
     for i in range(num_joints):
         p.resetJointState(robot_id, i, joint_positions[i])
 
     p.stepSimulation()
     time.sleep(1/240)
-
-# while True:
-    # Example: simple sinusoidal motion form all 3 joints
-    # joint_positions = [
-        # 0.5 * math.sin(t),
-        # 0.5 * math.sin(t + math.pi/4)
-    #     0.5,
-    #     0.5
-       
-    # ]
-    
-    # for i in range(num_joints):
-    #     p.setJointMotorControl2(
-    #         bodyIndex=robot_id,
-    #         jointIndex=i,
-    #         controlMode=p.POSITION_CONTROL,
-    #         targetPosition=joint_positions[i],
-    #         force=100
-    #     )
-    
-    # p.stepSimulation()
-    # time.sleep(1/240)
-    # t += 0.01
