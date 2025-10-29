@@ -25,7 +25,6 @@ for i in range(num_joints):
 
 # 4. Simulation loop
 t = 0
-
 p.resetDebugVisualizerCamera(
     cameraDistance=4,  # distance from target
     cameraYaw=50,        # rotation around vertical axis (degrees)
@@ -33,24 +32,31 @@ p.resetDebugVisualizerCamera(
     cameraTargetPosition=[0, 0, 0]  # what the camera points at
 
 )
-target_pos = [0.1, 0.1, 0.2]  # x, y, z in world coordinates
+target_pos = [0.0, 0.5, 0.5]  # x, y, z in world coordinates
 end_effector_index = num_joints -1 # last link
 speed = 0.02  # radians per simulation step
 current_positions = [0.0] * num_joints
 
 while True:
-
     # Build the 4x4 target frame for IKPy
     target_frame = np.eye(4)
-    target_frame[:3, 3] = target_pos  # set position, keep rotation identity
+    target_frame[:3, 3] = target_pos
 
     # Compute joint angles using IKPy
-    ik_angles = arm_chain.inverse_kinematics(target_frame)
+    ik_angles = arm_chain.inverse_kinematics(target_pos)
+    print("\n=== IKPy Chain Summary ===")
+    for i, link in enumerate(arm_chain.links):
+        print(f"Link {i}: {link.name}, active={arm_chain.active_links_mask[i]}")
+    print("===========================\n")
+    # Determine which joints are active (skip fixed base)
+    moving_joints = [i for i, active in enumerate(arm_chain.active_links_mask) if active][1:]
 
-    # Map IK angles to PyBullet joints (skip the fixed base)
-    moving_joints = [joint.index for joint in arm_chain.active_links_mask if joint]  
-# or manually: [0, 1, 2] if you know the first joint is base_yaw
-    ik_angles_moving = ik_angles[1:4]  # skip fixed base
+    # Extract the correct number of IK angles
+    ik_angles_moving = ik_angles[1:1+len(moving_joints)]
+
+    # Debug prints (optional)
+    # print("ik:", ik_angles)
+    # print("moving:", moving_joints, "len:", len(ik_angles_moving))
 
     # Smoothly move each joint
     for i, joint_index in enumerate(moving_joints):
@@ -64,3 +70,4 @@ while True:
 
     p.stepSimulation()
     time.sleep(1/240)
+
