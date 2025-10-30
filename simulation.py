@@ -1,73 +1,73 @@
 import pybullet as p
 import pybullet_data
-import time       # needed for time.sleep
-import math 
-from ikpy.chain import Chain
-from ikpy.link import URDFLink
+import time
 import numpy as np
+from ikpy.chain import Chain
 
 p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
-# p.setGravity(0, 0, -9.8)
-p.setTimeStep(1/240)
+p.setGravity(0, 0, -9.81)
+p.setRealTimeSimulation(0)
+p.setTimeStep(1 / 240)
 
-robot_id = p.loadURDF("3_DOF.urdf", [0,0,0], useFixedBase = True)
+robot_id = p.loadURDF("3_DOF.urdf", useFixedBase=True)
 
-# Simulation loop
+joint_name_to_idx = {
+    p.getJointInfo(robot_id, i)[1].decode('utf-8'): i
+    for i in range(p.getNumJoints(robot_id))
+}
 
-# 2. Get joint info and prints it
-num_joints = p.getNumJoints(robot_id)
-arm_chain = Chain.from_urdf_file("3_DOF.urdf")
-for i in range(num_joints):
-    info = p.getJointInfo(robot_id, i)
-    print(f"Joint {i}: {info[1].decode()}")
-
-
-# 4. Simulation loop
-t = 0
-p.resetDebugVisualizerCamera(
-    cameraDistance=4,  # distance from target
-    cameraYaw=50,        # rotation around vertical axis (degrees)
-    cameraPitch=-30,     # up/down tilt (degrees)
-    cameraTargetPosition=[0, 0, 0]  # what the camera points at
-
+active_links_mask = [False, False, True, True, True, False]
+arm_chain = Chain.from_urdf_file(
+    "3_DOF.urdf",
+    base_elements=["world"],
+    active_links_mask=active_links_mask
 )
-target_pos = [0.0, 0.5, 0.5]  # x, y, z in world coordinates
-end_effector_index = num_joints -1 # last link
-speed = 0.02  # radians per simulation step
-current_positions = [0.0] * num_joints
+
+target_pos = [0.5,1, 0.0]
+p.createMultiBody(
+    baseVisualShapeIndex=p.createVisualShape(p.GEOM_SPHERE, radius=0.02, rgbaColor=[1, 0, 0, 1]),
+    basePosition=target_pos
+)
+
+ik_angles = arm_chain.inverse_kinematics(
+    target_position=target_pos,
+    initial_position=np.zeros(len(arm_chain.links))
+)
+revolute_angles = np.arctan2(
+    np.sin(ik_angles[2:5]),
+    np.cos(ik_angles[2:5])
+)
+
+print("\n=== IK RESULT ===")
+for name, angle in zip(["base_yaw", "joint1", "joint2"], revolute_angles):
+    print(f"{name:10s}: {angle: .4f} rad  ({np.degrees(angle): .2f}°)")
+
+pb_joint_idx = [joint_name_to_idx[j] for j in ["base_yaw", "joint1", "joint2"]]
+for pb_idx, angle in zip(pb_joint_idx, revolute_angles):
+    p.setJointMotorControl2(
+        bodyUniqueId=robot_id,
+        jointIndex=pb_idx,
+        controlMode=p.POSITION_CONTROL,
+        targetPosition=angle
+
+    )
+
+for i in range(3600):
+    p.stepSimulation()
+    time.sleep(1/2)
+
+full_ik = np.zeros(len(arm_chain.links))
+full_ik[2:5] = revolute_angles
+fk_pos = arm_chain.forward_kinematics(full_ik)[:3, 3]
+print(f"\nFK (IKPy): {fk_pos}")
+print(f"FK error : {np.linalg.norm(fk_pos - target_pos):.6f} m")
+ee_link_idx = joint_name_to_idx.get("ee_fixed")
+if ee_link_idx is not None:
+    sim_pos = p.getLinkState(robot_id, ee_link_idx)[0]
+    print(f"Sim EE pos: {sim_pos}")
+    print(f"Sim error : {np.linalg.norm(np.array(sim_pos) - target_pos):.6f} m")
 
 while True:
-    # Build the 4x4 target frame for IKPy
-    target_frame = np.eye(4)
-    target_frame[:3, 3] = target_pos
-
-    # Compute joint angles using IKPy
-    ik_angles = arm_chain.inverse_kinematics(target_pos)
-    print("\n=== IKPy Chain Summary ===")
-    for i, link in enumerate(arm_chain.links):
-        print(f"Link {i}: {link.name}, active={arm_chain.active_links_mask[i]}")
-    print("===========================\n")
-    # Determine which joints are active (skip fixed base)
-    moving_joints = [i for i, active in enumerate(arm_chain.active_links_mask) if active][1:]
-
-    # Extract the correct number of IK angles
-    ik_angles_moving = ik_angles[1:1+len(moving_joints)]
-
-    # Debug prints (optional)
-    # print("ik:", ik_angles)
-    # print("moving:", moving_joints, "len:", len(ik_angles_moving))
-
-    # Smoothly move each joint
-    for i, joint_index in enumerate(moving_joints):
-        diff = ik_angles_moving[i] - current_positions[i]
-        if abs(diff) > speed:
-            current_positions[i] += speed if diff > 0 else -speed
-        else:
-            current_positions[i] = ik_angles_moving[i]
-
-        p.resetJointState(robot_id, joint_index, current_positions[i])
-
     p.stepSimulation()
-    time.sleep(1/240)
-
+    time.sleep(1 / 240)
