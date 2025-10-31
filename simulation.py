@@ -11,20 +11,24 @@ p.setRealTimeSimulation(0)
 p.setTimeStep(1 / 240)
 
 robot_id = p.loadURDF("3_DOF.urdf", useFixedBase=True)
+left_id = 5
+right_id = 6
 
 joint_name_to_idx = {
     p.getJointInfo(robot_id, i)[1].decode('utf-8'): i
     for i in range(p.getNumJoints(robot_id))
 }
 
-active_links_mask = [False, False, True, True, True, False]
+active_links_mask = [False, False, True, True, True, True, False]
 arm_chain = Chain.from_urdf_file(
     "3_DOF.urdf",
     base_elements=["world"],
     active_links_mask=active_links_mask
 )
 
-target_pos = [0.5,1, 0.0]
+
+target_pos = [1.0,1.0, 1.0]
+#creates red dot where target_pos is positioned
 p.createMultiBody(
     baseVisualShapeIndex=p.createVisualShape(p.GEOM_SPHERE, radius=0.02, rgbaColor=[1, 0, 0, 1]),
     basePosition=target_pos
@@ -52,10 +56,30 @@ for pb_idx, angle in zip(pb_joint_idx, revolute_angles):
         targetPosition=angle
 
     )
+    
+# p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=-0.4, force = 10)
+# p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=0.4, force = 10)
+
+# p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=0.4,force = 10)
+# p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=-0.4,force = 10)
+
+ee_link_idx = joint_name_to_idx.get("ee_fixed")
+tolerance = 0.05  # 1 cm
+
+gripper_closed = False
 
 for i in range(3600):
     p.stepSimulation()
-    time.sleep(1/2)
+    time.sleep(1/240)
+    ee_pos = np.array(p.getLinkState(robot_id, ee_link_idx)[0])
+    distance = np.linalg.norm(ee_pos - np.array(target_pos))
+
+    # Close gripper when within tolerance
+    if distance < tolerance:
+        p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=-0.4, force=50)
+        p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=-0.4, force=50)
+        gripper_closed = True
+
 
 full_ik = np.zeros(len(arm_chain.links))
 full_ik[2:5] = revolute_angles
