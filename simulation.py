@@ -2,6 +2,8 @@ import pybullet as p
 import pybullet_data
 import time
 import numpy as np
+import imageio
+import cv2
 from ikpy.chain import Chain
 
 p.connect(p.GUI)
@@ -11,24 +13,66 @@ p.setRealTimeSimulation(0)
 p.setTimeStep(1 / 240)
 
 robot_id = p.loadURDF("3_DOF.urdf", useFixedBase=True)
-left_id = 5
-right_id = 6
+
+# test cube
+cube_start_pos = [0.6,-0.6, -0.2]   # x, y, z coordinates
+cube_start_orientation = p.getQuaternionFromEuler([0, 0, 0])
+
+cube_collision = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.05, 0.05, 0.05])
+cube_visual = p.createVisualShape(
+    p.GEOM_BOX,
+    halfExtents=[0.05, 0.05, 0.05],
+    rgbaColor=[0, 0, 1, 1]  # blue
+)
+
+cube_body = p.createMultiBody(
+    baseMass=0,
+    baseCollisionShapeIndex=cube_collision,
+    baseVisualShapeIndex=cube_visual,
+    basePosition=cube_start_pos,
+    baseOrientation=cube_start_orientation
+)
+
+# aruco cube
+aruco_texture = p.loadTexture("aruco_tag.png")
+aruco_visual = p.createVisualShape(
+    p.GEOM_BOX,
+    halfExtents=[0.05, 0.05, 0.05],
+    rgbaColor=[1, 1, 1, 1]
+)
+aruco_cube = p.createMultiBody(
+    baseMass=0,
+    baseVisualShapeIndex=aruco_visual,
+    basePosition=[0.5, 1.0, 0.0]
+)
+p.changeVisualShape(aruco_cube, -1, textureUniqueId=aruco_texture)
+
+
+# Create a small yellow cube to represent the camera
+camera_cube_visual = p.createVisualShape(
+    p.GEOM_BOX,
+    halfExtents=[0.01, 0.01, 0.01],  # 2 cm cube
+    rgbaColor=[1, 1, 0, 1]           # yellow
+)
+camera_cube = p.createMultiBody(
+    baseMass=0,
+    baseVisualShapeIndex=camera_cube_visual,
+    basePosition=[0, 0, 0]
+)
 
 joint_name_to_idx = {
     p.getJointInfo(robot_id, i)[1].decode('utf-8'): i
     for i in range(p.getNumJoints(robot_id))
 }
 
-active_links_mask = [False, False, True, True, True, True, False]
+active_links_mask = [False, False, True, True, True, False]
 arm_chain = Chain.from_urdf_file(
     "3_DOF.urdf",
     base_elements=["world"],
     active_links_mask=active_links_mask
 )
 
-
-target_pos = [1.0,1.0, 1.0]
-#creates red dot where target_pos is positioned
+target_pos = [0.5,-0.5, 0.0]
 p.createMultiBody(
     baseVisualShapeIndex=p.createVisualShape(p.GEOM_SPHERE, radius=0.02, rgbaColor=[1, 0, 0, 1]),
     basePosition=target_pos
@@ -56,30 +100,34 @@ for pb_idx, angle in zip(pb_joint_idx, revolute_angles):
         targetPosition=angle
 
     )
-    
-# p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=-0.4, force = 10)
-# p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=0.4, force = 10)
 
-# p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=0.4,force = 10)
-# p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=-0.4,force = 10)
-
-ee_link_idx = joint_name_to_idx.get("ee_fixed")
-tolerance = 0.05  # 1 cm
-
-gripper_closed = False
-
-for i in range(3600):
+for i in range(2000):
     p.stepSimulation()
     time.sleep(1/240)
-    ee_pos = np.array(p.getLinkState(robot_id, ee_link_idx)[0])
-    distance = np.linalg.norm(ee_pos - np.array(target_pos))
 
-    # Close gripper when within tolerance
-    if distance < tolerance:
-        p.setJointMotorControl2(robot_id, left_id, p.POSITION_CONTROL, targetPosition=-0.4, force=50)
-        p.setJointMotorControl2(robot_id, right_id, p.POSITION_CONTROL, targetPosition=-0.4, force=50)
-        gripper_closed = True
+    # newly added camera
+    link_state = p.getLinkState(robot_id, joint_name_to_idx["ee_fixed"])
+    ee_pos, ee_orn = link_state[0], link_state[1]
+    rot_matrix = np.array(p.getMatrixFromQuaternion(ee_orn)).reshape(3, 3)
+    camera_eye = ee_pos - 0.00 * rot_matrix[:, 0]- 0.1 * rot_matrix[:, 2]
+    camera_target = ee_pos - 0.1 * rot_matrix[:, 0]
+    camera_up = rot_matrix[:, 2]
 
+    p.resetBasePositionAndOrientation(camera_cube, camera_eye, [0, 0, 0, 1])
+
+    if i % 10 == 0:  # snapshot every 10 steps
+        view_matrix = p.computeViewMatrix(camera_eye, camera_target, camera_up)
+        proj_matrix = p.computeProjectionMatrixFOV(fov=60, aspect=1.0, nearVal=0.01, farVal=5.0)
+
+        width, height, rgb, _,_ = p.getCameraImage(
+            width=320,
+            height=240,
+            viewMatrix=view_matrix,
+            projectionMatrix=proj_matrix
+        )
+        rgb_array = np.reshape(rgb, (height, width, 4))[:, :, :3]
+        imageio.imwrite(f"camerasnap{i:04d}.png", rgb_array)
+        print(f"📸 Saved camerasnap{i:04d}.png")
 
 full_ik = np.zeros(len(arm_chain.links))
 full_ik[2:5] = revolute_angles
