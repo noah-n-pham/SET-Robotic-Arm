@@ -2,17 +2,19 @@ import cv2
 import cv2.aruco as aruco
 import numpy as np 
 
+
 # establish camera, arUco settings
-cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture(1)
+img = cv2.imread("path/to/image.jpg")
 ground = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=50)
 
 arucoDict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters = aruco.DetectorParameters()
 
-# if the camera doesn’t open, report the error and exit program 
-if not cap.isOpened():
-	print("Camera can't open")
-	exit()
+# # if the camera doesn’t open, report the error and exit program 
+# if not cap.isOpened():
+# 	print("Camera can't open")
+# 	exit()
 
 # Set initial working conditions for the camera (reference for calculations)
 cHeightMax = 0.2921
@@ -21,7 +23,7 @@ minArea = 800
 
 # if the camera is functional, set up the matrix of positions based on the camera’s range of vision
 while True:
-	ret, frame = cap.read()
+	ret, frame = img.read()
 	if not ret:
 		break
 	
@@ -48,7 +50,7 @@ while True:
 
 		# output the meter values for the object’s position
 		cv2.putText(frame, f"Obj (x = {xNew:.2f}, y = {yNew:.2f}, z = {zNew:.2f})", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-		print(f"Object position (normalized frame): X = {XNew.3f} m, Y = {yNew.3f} m, Z = {zNew:.3f} m")
+		print(f"Object position (normalized frame): X = {xNew:.3f} m, Y = {yNew:.3f} m, Z = {zNew:.3f} m")
 
 	# Display the camera’s view on the computer. if “ESC” is pressed, close the camera view and exit the program
 	cv2.imshow("ArUco + Object Detection", frame)
@@ -56,6 +58,6 @@ while True:
 	if key == 27:
 		break
 
-cap.release()
+# cap.release()
 cv2.destroyAllWindows()
 
