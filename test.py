@@ -36,6 +36,8 @@ camera_cube = p.createMultiBody(
 
 # aruco tag cube
 # Base white cube
+# Coord: (0.5, -0.7, 0)
+# Target: (0.2, -0.35, 0.4)
 cube_visual = p.createVisualShape(
    p.GEOM_BOX,
    halfExtents=[0.05, 0.05, 0.05],
@@ -74,7 +76,8 @@ aruco_face_id = p.createMultiBody(
 # Apply the texture to that plane
 p.changeVisualShape(aruco_face_id, -1, textureUniqueId=aruco_texture)
 
-
+# Big aruco test cube
+"""
 test_visual = p.createVisualShape(
    p.GEOM_BOX,
    halfExtents=[0.2, 0.2, 0.2],
@@ -95,7 +98,7 @@ test_cube = p.createMultiBody(
 
 
 p.changeVisualShape(test_cube, -1, textureUniqueId=p.loadTexture("aruco_tag_mesh.png"))
-
+"""
 
 joint_name_to_idx = {
    p.getJointInfo(robot_id, i)[1].decode('utf-8'): i
