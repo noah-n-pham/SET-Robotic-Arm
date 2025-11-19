@@ -4,13 +4,13 @@ import numpy as np
 
 
 # establish camera, arUco settings
-# cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture(0)
 ground = cv2.createBackgroundSubtractorMOG2(history=200, varThreshold=50)
 
 arucoDict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters = aruco.DetectorParameters()
 
-# # if the camera doesn’t open, report the error and exit program 
+# if the camera doesn’t open, report the error and exit program 
 # if not cap.isOpened():
 # 	print("Camera can't open")
 # 	exit()
@@ -26,10 +26,10 @@ while True:
 	# if not ret:
 	# 	break
 	
-	frame = cv2.imread("aruco_tag.png")
+	frame = cv2.imread("camerasnap.png")
 	if frame is None:
 		print("Failed to load image")
-		# break
+		break
 	h, w = frame.shape[:2]
 	f = w
 	cameraMatrix = np.array([[f, 0, w/2], [0, f, h/2], [0, 0, 1]], dtype=np.float32)

@@ -139,6 +139,30 @@ if ee_link_idx is not None:
     sim_pos = p.getLinkState(robot_id, ee_link_idx)[0]
     print(f"Sim EE pos: {sim_pos}")
     print(f"Sim error : {np.linalg.norm(np.array(sim_pos) - target_pos):.6f} m")
+# math for camera to object
+pos, orn = p.getBasePositionAndOrientation(robot_id)
+ee_to_cam = [[1, 0, 0, 0],
+             [0, 1, 0, 0],
+             [0, 0, 1, -0.1],
+             [0, 0, 0, 1]]
+# cam_to_obj =
+rot = np.array(p.getMatrixFromQuaternion(orn)).reshape(3,3)
+translation = np.array(pos).reshape(3,1)
+world_to_base = np.eye(4)
+world_to_base[:3,:3] = rot
+world_to_base[:3, 3] = translation
+
+state = p.getLinkState(robot_id, 4, computeForwardKinematics=True)
+pos = state[4]          # world position (x, y, z)
+orn = state[5]          # world orientation quaternion (x, y, z, w)
+rot_matrix = p.getMatrixFromQuaternion(orn)
+rot_matrix = np.array(rot_matrix).reshape(3, 3)
+world_to_ee = np.eye(4)
+world_to_ee[:3, :3] = rot_matrix
+world_to_ee[:3, 3] = pos
+
+ee_to_base = np.linalg.inv(world_to_base) @ world_to_ee
+np.matmul(ee_to_cam, ee_to_base)
 
 while True:
     p.stepSimulation()
