@@ -72,7 +72,7 @@ arm_chain = Chain.from_urdf_file(
     active_links_mask=active_links_mask
 )
 
-target_pos = [0.5,-0.5, 0.0]
+target_pos = [0.8,-0.5, 0.0]
 p.createMultiBody(
     baseVisualShapeIndex=p.createVisualShape(p.GEOM_SPHERE, radius=0.02, rgbaColor=[1, 0, 0, 1]),
     basePosition=target_pos
@@ -101,6 +101,8 @@ for pb_idx, angle in zip(pb_joint_idx, revolute_angles):
 
     )
 
+
+
 for i in range(2000):
     p.stepSimulation()
     time.sleep(1/240)
@@ -126,8 +128,52 @@ for i in range(2000):
             projectionMatrix=proj_matrix
         )
         rgb_array = np.reshape(rgb, (height, width, 4))[:, :, :3]
-        imageio.imwrite(f"camerasnap{i:04d}.png", rgb_array)
-        print(f"📸 Saved camerasnap{i:04d}.png")
+        # imageio.imwrite(f"camerasnap{i:04d}.png", rgb_array)
+        # print(f"📸 Saved camerasnap{i:04d}.png")
+        pos, orn = p.getBasePositionAndOrientation(robot_id)
+        ee_to_cam = [[1, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, -0.1],
+                    [0, 0, 0, 1]]
+        #get world to base matrix
+        rot = np.array(p.getMatrixFromQuaternion(orn)).reshape(3,3)
+        translation = np.array(pos).reshape(3,1)
+        world_to_base = np.eye(4)
+        world_to_base[:3,:3] = rot
+        world_to_base[:3, 3] = translation.flatten()
+        # get world to end effector matrix
+        state = p.getLinkState(robot_id, 4, computeForwardKinematics=True)
+        pos = state[4]          # world position (x, y, z)
+        orn = state[5]          # world orientation quaternion (x, y, z, w)
+        rot_matrix = p.getMatrixFromQuaternion(orn)
+        rot_matrix = np.array(rot_matrix).reshape(3, 3)
+        world_to_ee = np.eye(4)
+        world_to_ee[:3, :3] = rot_matrix
+        world_to_ee[:3, 3] = pos
+
+        ee_to_base = np.linalg.inv(world_to_base) @ world_to_ee
+        rot
+        cam_pos, cam_quat = p.getBasePositionAndOrientation(camera_cube)
+        rot = np.array(p.getMatrixFromQuaternion(cam_quat)).reshape(3,3)
+        translation = np.array(cam_pos).reshape(3,1)
+        cam_to_world = np.eye(4)
+        cam_to_world[:3,:3] = rot
+        cam_to_world[:3, 3] = translation.flatten()
+
+        obj_pos, obj_quat = p.getBasePositionAndOrientation(aruco_cube)
+        rot = np.array(p.getMatrixFromQuaternion(obj_quat)).reshape(3,3)
+        translation = np.array(obj_pos).reshape(3,1)
+        world_to_obj = np.eye(4)
+        world_to_obj[:3,:3] = rot
+        world_to_obj[:3, 3] = translation.flatten()
+
+        cam_to_obj = np.linalg.inv(cam_to_world) @ world_to_obj
+        matrix = np.matmul(ee_to_cam, ee_to_base)
+        matrix = np.matmul(matrix, cam_to_obj)
+
+        target_pos = matrix[:3, 3]
+        ik_solution = arm_chain.inverse_kinematics(target_pos)
+        print(ik_solution)
 
 full_ik = np.zeros(len(arm_chain.links))
 full_ik[2:5] = revolute_angles
@@ -141,49 +187,50 @@ if ee_link_idx is not None:
     print(f"Sim error : {np.linalg.norm(np.array(sim_pos) - target_pos):.6f} m")
 
 # math for camera to object
-pos, orn = p.getBasePositionAndOrientation(robot_id)
-ee_to_cam = [[1, 0, 0, 0],
-             [0, 1, 0, 0],
-             [0, 0, 1, -0.1],
-             [0, 0, 0, 1]]
-#get world to base matrix
-rot = np.array(p.getMatrixFromQuaternion(orn)).reshape(3,3)
-translation = np.array(pos).reshape(3,1)
-world_to_base = np.eye(4)
-world_to_base[:3,:3] = rot
-world_to_base[:3, 3] = translation
-# get world to end effector matrix
-state = p.getLinkState(robot_id, 4, computeForwardKinematics=True)
-pos = state[4]          # world position (x, y, z)
-orn = state[5]          # world orientation quaternion (x, y, z, w)
-rot_matrix = p.getMatrixFromQuaternion(orn)
-rot_matrix = np.array(rot_matrix).reshape(3, 3)
-world_to_ee = np.eye(4)
-world_to_ee[:3, :3] = rot_matrix
-world_to_ee[:3, 3] = pos
+# pos, orn = p.getBasePositionAndOrientation(robot_id)
+# ee_to_cam = [[1, 0, 0, 0],
+#              [0, 1, 0, 0],
+#              [0, 0, 1, -0.1],
+#              [0, 0, 0, 1]]
+# #get world to base matrix
+# rot = np.array(p.getMatrixFromQuaternion(orn)).reshape(3,3)
+# translation = np.array(pos).reshape(3,1)
+# world_to_base = np.eye(4)
+# world_to_base[:3,:3] = rot
+# world_to_base[:3, 3] = translation
+# # get world to end effector matrix
+# state = p.getLinkState(robot_id, 4, computeForwardKinematics=True)
+# pos = state[4]          # world position (x, y, z)
+# orn = state[5]          # world orientation quaternion (x, y, z, w)
+# rot_matrix = p.getMatrixFromQuaternion(orn)
+# rot_matrix = np.array(rot_matrix).reshape(3, 3)
+# world_to_ee = np.eye(4)
+# world_to_ee[:3, :3] = rot_matrix
+# world_to_ee[:3, 3] = pos
 
-ee_to_base = np.linalg.inv(world_to_base) @ world_to_ee
-rot
-cam_pos, cam_quat = p.getBasePositionAndOrientation(camera_cube)
-rot = np.array(p.getMatrixFromQuaternion(cam_quat)).reshape(3,3)
-translation = np.array(cam_pos).reshape(3,1)
-cam_to_world = np.eye(4)
-cam_to_world[:3,:3] = rot
-cam_to_world[:3, 3] = translation
+# ee_to_base = np.linalg.inv(world_to_base) @ world_to_ee
+# rot
+# cam_pos, cam_quat = p.getBasePositionAndOrientation(camera_cube)
+# rot = np.array(p.getMatrixFromQuaternion(cam_quat)).reshape(3,3)
+# translation = np.array(cam_pos).reshape(3,1)
+# cam_to_world = np.eye(4)
+# cam_to_world[:3,:3] = rot
+# cam_to_world[:3, 3] = translation
 
-obj_pos, obj_quat = p.getBasePositionAndOrientation(aruco_cube)
-rot = np.array(p.getMatrixFromQuaternion(obj_quat)).reshape(3,3)
-translation = np.array(obj_pos).reshape(3,1)
-world_to_obj = np.eye(4)
-world_to_obj[:3,:3] = rot
-world_to_obj[:3, 3] = translation
+# obj_pos, obj_quat = p.getBasePositionAndOrientation(aruco_cube)
+# rot = np.array(p.getMatrixFromQuaternion(obj_quat)).reshape(3,3)
+# translation = np.array(obj_pos).reshape(3,1)
+# world_to_obj = np.eye(4)
+# world_to_obj[:3,:3] = rot
+# world_to_obj[:3, 3] = translation
 
-cam_to_obj = np.linalg.inv(cam_to_world) @ world_to_obj
-matrix = np.matmul(ee_to_cam, ee_to_base)
-matrix = np.matmul(matrix, cam_to_obj)
+# cam_to_obj = np.linalg.inv(cam_to_world) @ world_to_obj
+# matrix = np.matmul(ee_to_cam, ee_to_base)
+# matrix = np.matmul(matrix, cam_to_obj)
 
-ik_solution = arm_chain.inverse_kinematics(matrix)
-print(ik_solution)
-while True:
-    p.stepSimulation()
-    time.sleep(1 / 240)
+# ik_solution = arm_chain.inverse_kinematics(matrix)
+# print("hi")
+# print(ik_solution)
+# while True:
+#     p.stepSimulation()
+#     time.sleep(1 / 240)
