@@ -139,19 +139,20 @@ if ee_link_idx is not None:
     sim_pos = p.getLinkState(robot_id, ee_link_idx)[0]
     print(f"Sim EE pos: {sim_pos}")
     print(f"Sim error : {np.linalg.norm(np.array(sim_pos) - target_pos):.6f} m")
+
 # math for camera to object
 pos, orn = p.getBasePositionAndOrientation(robot_id)
 ee_to_cam = [[1, 0, 0, 0],
              [0, 1, 0, 0],
              [0, 0, 1, -0.1],
              [0, 0, 0, 1]]
-# cam_to_obj =
+#get world to base matrix
 rot = np.array(p.getMatrixFromQuaternion(orn)).reshape(3,3)
 translation = np.array(pos).reshape(3,1)
 world_to_base = np.eye(4)
 world_to_base[:3,:3] = rot
 world_to_base[:3, 3] = translation
-
+# get world to end effector matrix
 state = p.getLinkState(robot_id, 4, computeForwardKinematics=True)
 pos = state[4]          # world position (x, y, z)
 orn = state[5]          # world orientation quaternion (x, y, z, w)
@@ -162,8 +163,27 @@ world_to_ee[:3, :3] = rot_matrix
 world_to_ee[:3, 3] = pos
 
 ee_to_base = np.linalg.inv(world_to_base) @ world_to_ee
-np.matmul(ee_to_cam, ee_to_base)
+rot
+cam_pos, cam_quat = p.getBasePositionAndOrientation(camera_cube)
+rot = np.array(p.getMatrixFromQuaternion(cam_quat)).reshape(3,3)
+translation = np.array(cam_pos).reshape(3,1)
+cam_to_world = np.eye(4)
+cam_to_world[:3,:3] = rot
+cam_to_world[:3, 3] = translation
 
+obj_pos, obj_quat = p.getBasePositionAndOrientation(aruco_cube)
+rot = np.array(p.getMatrixFromQuaternion(obj_quat)).reshape(3,3)
+translation = np.array(obj_pos).reshape(3,1)
+world_to_obj = np.eye(4)
+world_to_obj[:3,:3] = rot
+world_to_obj[:3, 3] = translation
+
+cam_to_obj = np.linalg.inv(cam_to_world) @ world_to_obj
+matrix = np.matmul(ee_to_cam, ee_to_base)
+matrix = np.matmul(matrix, cam_to_obj)
+
+ik_solution = arm_chain.inverse_kinematics(matrix)
+print(ik_solution)
 while True:
     p.stepSimulation()
     time.sleep(1 / 240)
