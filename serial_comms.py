@@ -8,6 +8,19 @@ BAUD = 9600  # same speed as Ro
 ser = serial.Serial(PORT, BAUD, timeout=1)
 time.sleep(2)  # allow Arduino reset
 
+
+def send_angles(theta1, theta2, theta3):
+    msg = f"{theta1:.2f},{theta2:.2f},{theta3:.2f}\n"  # format: 45.00,30.00\n
+    ser.write(msg.encode())
+    print(f"Sent: {msg.strip()}")
+
+send_angles(90, 90, 90)  # initial position
+
+ser.close()
+print("Done!")  # done wahoo
+
+
+
 # # --- Arm setup ---
 # L1 = 10.16  # cm, change later
 # L2 = 10.16
@@ -26,15 +39,6 @@ time.sleep(2)  # allow Arduino reset
 #         theta2)  # math.acos() and math.atan2() give radians. Servos use degrees, so we convert:
 #     # Ex Result: two numbers like (45.0, 30.0) → meaning: shoulder servo = 45°, elbow servo = 30°.
 
-
-def send_angles(theta1, theta2, theta3):
-    msg = f"{theta1:.2f},{theta2:.2f},{theta3:.2f}\n"  # format: 45.00,30.00\n
-    ser.write(msg.encode())
-    print(f"Sent: {msg.strip()}")
-
-send_angles(90, 90, 90)  # initial position
-
-
 # # --- Main test loop ---
 # # tests
 # points = [(10, 0), (10, 10), (5, 10), (10, 5)]
@@ -47,5 +51,3 @@ send_angles(90, 90, 90)  # initial position
 #     send_angles(t1, t2)
 #     time.sleep(2)
 
-# ser.close()
-# print("Done!")  # done wahoo
