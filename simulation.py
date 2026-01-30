@@ -13,7 +13,7 @@ p.setRealTimeSimulation(0)
 p.setTimeStep(1 / 240)
 
 robot_id = p.loadURDF("3_DOF.urdf", useFixedBase=True)
-
+# forward_kinematics = p.calculateForwardKinematics(robot_id, [0, 0, 0, 0, 0, 0] 30,60,90)
 # test cube
 cube_start_pos = [0.6,-0.6, -0.2]   # x, y, z coordinates
 cube_start_orientation = p.getQuaternionFromEuler([0, 0, 0])

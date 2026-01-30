@@ -1,6 +1,7 @@
 import serial
 import time
 import math
+from ikpy.chain import Chain
 
 # --- Serial Setup ---
 PORT = "COM3"  # windows ver
@@ -8,13 +9,18 @@ BAUD = 9600  # same speed as Ro
 ser = serial.Serial(PORT, BAUD, timeout=1)
 time.sleep(2)  # allow Arduino reset
 
+chain = Chain.from_urdf_file("3_DOF.urdf")
 
-def send_angles(theta1, theta2, theta3):
-    msg = f"{theta1:.2f},{theta2:.2f},{theta3:.2f}\n"  # format: 45.00,30.00\n
+def send_angles(targetPosition):
+
+    # targetPosition is a list of [x, y, z] coordinates
+    jointAngles = chain.inverse_kinematics(targetPosition)
+    servo_angles_deg = [math.degrees(a) for a in jointAngles[1:]]
+    msg = f"{servo_angles_deg[1]:.2f},{servo_angles_deg[2]:.2f},{servo_angles_deg[3]:.2f}\n"  # format: 45.00,30.00\n
     ser.write(msg.encode())
     print(f"Sent: {msg.strip()}")
 
-send_angles(90, 90, 90)  # initial position
+send_angles([0, 0, 0])  # initial position
 
 ser.close()
 print("Done!")  # done wahoo
