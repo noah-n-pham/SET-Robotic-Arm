@@ -8,7 +8,7 @@
   <joint name="world_to_base" type="fixed">
     <parent link="world"/>
     <child link="base_fixed"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <origin xyz="0 0 0" rpy="0 1.5708 0"/>
   </joint>
 
 
