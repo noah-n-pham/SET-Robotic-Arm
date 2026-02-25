@@ -23,7 +23,7 @@ z_step = 0.01 # 1cm descent step
 
 
 # # --- Camera Setup ---
-def detect():
+def camera():
    port = '/dev/ttyACM0'
    global target_xyz
 

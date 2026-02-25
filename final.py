@@ -6,7 +6,7 @@ import serial
 import cv2.aruco as aruco
 import math
 
-
+chain = Chain.from_urdf_file("3_DOF.urdf")
 # # --- Serial Setup ---
 PORT = "COM3"  # windows ver
 BAUD = 9600  # same speed as Ro
@@ -14,12 +14,13 @@ BAUD = 9600  # same speed as Ro
 time.sleep(2)  # allow Arduino reset
 
 # 2/12/26 - added control param
-#Xtarget_xyz = [0, 0, 0] # Define a global variable to track where the arm is currently, where tip of cam is
+current_xyz = [0, 0, 0] # Define a global variable to track where the arm is currently, where tip of cam is
 target_xyz = [0.1, 0, 0.15]
 Kp = 0.2 # proportional control
 center_threshold = 0.005 # 5mm tolerance
 z_step = 0.01 # 1cm descent step
 
+state = [current_xyz, target_xyz, [0,0,0], math.inf]
 #detect (returns target pos) ->
 #center xy ->
 #descend z until uncentered ->
@@ -27,7 +28,7 @@ z_step = 0.01 # 1cm descent step
 #descend and repeat until target position reached- >
 #activate gripper
 
-def detect(): 
+def detect_and_center(): 
     while True:
         port = '/dev/ttyACM0'
         global target_xyz
@@ -134,29 +135,30 @@ def detect():
 
 
            # control logic
-           if abs(error_x_m) < center_threshold and abs(error_y_m) < center_threshold:
-               # If centered → descend Z only
-               target_xyz[2] -= z_step
-               print("Centered. Descending Z.")
-           else:
-               # Not centered → correct XY gradually using Kp
-               target_xyz[0] += Kp * error_x_m
-               target_xyz[1] += Kp * error_y_m
-               print("Correcting XY")
+        #    if abs(error_x_m) < center_threshold and abs(error_y_m) < center_threshold:
+        #        # If centered → descend Z only
+        #        target_xyz[2] -= z_step
+        #        print("Centered. Descending Z.")
+        #    else:
+        #        # Not centered → correct XY gradually using Kp
+        if abs(error_x_m) >= center_threshold or abs(error_y_m) >= center_threshold:
+            target_xyz[0] += Kp * error_x_m
+            target_xyz[1] += Kp * error_y_m
+            print("Correcting XY")
 
 
            # inverse kinematics
-           jointAngles = chain.inverse_kinematics(target_xyz)
-           servo_angles_deg = [
-               math.degrees(jointAngles[1]),
-               math.degrees(jointAngles[2]),
-               math.degrees(jointAngles[3])
-           ]
-           return [target_xyz, servo_angles_deg, zC]
+        jointAngles = chain.inverse_kinematics(target_xyz)
+        servo_angles_deg = [
+            math.degrees(jointAngles[1]),
+            math.degrees(jointAngles[2]),
+            math.degrees(jointAngles[3])
+        ]
+        
 
-def center_xy(servo_angles_deg):
-    #send signal to arduino to center xy, 
-    return 0
+        # TODO: get current position and return that as well
+        state = [current_xyz, target_xyz, servo_angles_deg, zC]
+
 
 def descend_z():
     #send signal to arduino to descend z by one unit
@@ -166,10 +168,20 @@ def grip():
     #send signal to arduino to activate gripper
     return 0
 
+def send_angles(angles):
+    msg = f"{angles[0]:.2f},{angles[1]:.2f},{angles[2]:.2f}\n"  # format: 45.00,30.00\n
+    ser.write(msg.encode())
+    print(f"Sent: {msg.strip()}")
+
 def main():
-    result = detect()
-    center_xy(servo_angles_deg)
-        
+    result = detect_and_center()
+    vertical = result[3]
+    while(vertical > 0.1):
+        descend_z()
+        result = detect_and_center()
+        vertical = result[3]
+    grip()
+
 
 
 if __name__ == "__main__":
