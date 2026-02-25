@@ -1,6 +1,7 @@
 import cv2
 import cv2.aruco as aruco
 import numpy as np 
+import pyr
 
 
 # establish camera, arUco settings
@@ -55,6 +56,7 @@ while True:
 		# output the meter values for the object’s position
 		cv2.putText(frame, f"Obj (x = {xNew:.2f}, y = {yNew:.2f}, z = {zNew:.2f})", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 		print(f"Object position (normalized frame): X = {xNew:.3f} m, Y = {yNew:.3f} m, Z = {zNew:.3f} m")
+
 
 	# Display the camera’s view on the computer. if “ESC” is pressed, close the camera view and exit the program
 	cv2.imshow("ArUco + Object Detection", frame)
