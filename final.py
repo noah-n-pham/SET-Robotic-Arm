@@ -69,15 +69,15 @@ def detect_and_center():
       
         # if the ArUco tag is detected properly, determine the position of the object based on the tag’s communicated information + initial camera view matrix, convert from pixels to meters
         if ids is not None:
-           aruco.drawDetectedMarkers(frame, corners, ids)
+            aruco.drawDetectedMarkers(frame, corners, ids)
 
-           rvecs = []
-           tvecs = []
+            rvecs = []
+            tvecs = []
 
-           for corner in corners:
+            for corner in corners:
 
 
-               objp = np.array([
+                objp = np.array([
                    [-markerLength/2,  markerLength/2, 0],
                    [ markerLength/2,  markerLength/2, 0],
                    [ markerLength/2, -markerLength/2, 0],
@@ -85,7 +85,7 @@ def detect_and_center():
                ], dtype=np.float32)
 
 
-               retval, rvec, tvec = cv2.solvePnP(
+                retval, rvec, tvec = cv2.solvePnP(
                    objp,
                    corner,
                    cameraMatrix,
@@ -93,16 +93,16 @@ def detect_and_center():
                )
 
 
-               rvecs.append(rvec)
-               tvecs.append(tvec)
+                rvecs.append(rvec)
+                tvecs.append(tvec)
 
 
-           for i in range(len(ids)):
-               cv2.drawFrameAxes(frame, cameraMatrix, distCoeffs,
+            for i in range(len(ids)):
+                cv2.drawFrameAxes(frame, cameraMatrix, distCoeffs,
                                rvecs[i], tvecs[i], 0.03)
 
 
-           xC, yC, zC = tvecs[0].flatten()
+            xC, yC, zC = tvecs[0].flatten()
            #Commented out below, lower OpenCV code
            #rvecs, tvecs, _objPoints = aruco.estimatePoseSingleMarkers(corners, markerLength, cameraMatrix, distCoeffs)
            #for i in range(len(ids)):
@@ -115,23 +115,23 @@ def detect_and_center():
 
 
            # compute XY pixel error
-           cx = w / 2
-           cy = h / 2
+            cx = w / 2
+            cy = h / 2
 
 
            #Xtag_x = np.mean(corners[i][0][:, 0])
            #Xtag_y = np.mean(corners[i][0][:, 1])
-           tag_x = np.mean(corners[0][0][:, 0])
-           tag_y = np.mean(corners[0][0][:, 1])
+            tag_x = np.mean(corners[0][0][:, 0])
+            tag_y = np.mean(corners[0][0][:, 1])
 
 
-           error_x_pixels = tag_x - cx
-           error_y_pixels = tag_y - cy
+            error_x_pixels = tag_x - cx
+            error_y_pixels = tag_y - cy
 
 
            # convert from pixel error to meter error
-           error_x_m = (error_x_pixels * zC) / f
-           error_y_m = (error_y_pixels * zC) / f
+            error_x_m = (error_x_pixels * zC) / f
+            error_y_m = (error_y_pixels * zC) / f
 
 
            # control logic
@@ -141,27 +141,31 @@ def detect_and_center():
         #        print("Centered. Descending Z.")
         #    else:
         #        # Not centered → correct XY gradually using Kp
-        if abs(error_x_m) >= center_threshold or abs(error_y_m) >= center_threshold:
-            target_xyz[0] += Kp * error_x_m
-            target_xyz[1] += Kp * error_y_m
-            print("Correcting XY")
+            if abs(error_x_m) >= center_threshold or abs(error_y_m) >= center_threshold:
+                target_xyz[0] += Kp * error_x_m
+                target_xyz[1] += Kp * error_y_m
+                print("Correcting XY")
 
 
-           # inverse kinematics
-        jointAngles = chain.inverse_kinematics(target_xyz)
-        servo_angles_deg = [
-            math.degrees(jointAngles[1]),
-            math.degrees(jointAngles[2]),
-            math.degrees(jointAngles[3])
-        ]
+            # inverse kinematics
+            jointAngles = chain.inverse_kinematics(target_xyz)
+            servo_angles_deg = [
+                math.degrees(jointAngles[1]),
+                math.degrees(jointAngles[2]),
+                math.degrees(jointAngles[3])
+            ]
         
 
-        # TODO: get current position and return that as well
-        state = [current_xyz, target_xyz, servo_angles_deg, zC]
+            # TODO: get current position and return that as well
+            state = [current_xyz, target_xyz, servo_angles_deg, zC]
+            send_angles(servo_angles_deg)
+            return state
+    return None
 
-
-def descend_z():
+def descend_z(distance):
     #send signal to arduino to descend z by one unit
+    # call ikpy to calculate new angles for z
+    send_angles()
     return 0
 
 def grip():
@@ -170,16 +174,16 @@ def grip():
 
 def send_angles(angles):
     msg = f"{angles[0]:.2f},{angles[1]:.2f},{angles[2]:.2f}\n"  # format: 45.00,30.00\n
-    ser.write(msg.encode())
+    serial.write(msg.encode())
     print(f"Sent: {msg.strip()}")
 
 def main():
-    result = detect_and_center()
-    vertical = result[3]
-    while(vertical > 0.1):
-        descend_z()
+    while True:
         result = detect_and_center()
-        vertical = result[3]
+        vertical = result[3] if result else math.inf  # send angles if detection successful, else send zeros
+        if vertical < 0.1:
+            break
+        descend_z(vertical)
     grip()
 
 
