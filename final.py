@@ -89,7 +89,7 @@ def detect_and_center():
            tvecs = []
 
 
-           for corner in corners:
+            for corner in corners:
 
 
 
@@ -114,8 +114,8 @@ def detect_and_center():
 
 
 
-               rvecs.append(rvec)
-               tvecs.append(tvec)
+                rvecs.append(rvec)
+                tvecs.append(tvec)
 
 
 
@@ -156,8 +156,8 @@ def detect_and_center():
 
 
 
-           error_x_pixels = tag_x - cx
-           error_y_pixels = tag_y - cy
+            error_x_pixels = tag_x - cx
+            error_y_pixels = tag_y - cy
 
 
 
