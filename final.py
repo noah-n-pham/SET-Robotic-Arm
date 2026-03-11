@@ -69,6 +69,7 @@ alpha = 0.7
 # -----------------------------
 arucoDict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
 parameters = aruco.DetectorParameters()
+detector = aruco.ArucoDetector(arucoDict, parameters)
 
 markerLength = 0.05
 
@@ -114,7 +115,7 @@ def detect_and_center():
     distCoeffs = np.zeros((5, 1))
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    corners, ids, rejected = aruco.detectMarkers(gray, arucoDict, parameters=parameters)
+    corners, ids, rejected = detector.detectMarkers(gray)
 
     if ids is None:
         cv2.imshow("Camera", frame)
