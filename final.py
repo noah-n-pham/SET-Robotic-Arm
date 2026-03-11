@@ -23,13 +23,14 @@ center_threshold = 0.005
 z_step = 0.01
 
 state = [current_xyz, target_xyz, [0,0,0], math.inf]
+cap = cv2.VideoCapture(0)
 
 
 def detect_and_center():
 
     global target_xyz
 
-    cap = cv2.VideoCapture(0)
+    
 
     if not cap.isOpened():
         print("Error: Could not open video stream.")
@@ -122,7 +123,10 @@ def detect_and_center():
 
     state = [current_xyz, target_xyz, servo_angles_deg, zC]
 
-    cap.release()
+    cv2.imshow("Camera", frame)
+    cv2.waitKey(1)
+
+    # cap.release()
 
     return state
 
@@ -173,6 +177,8 @@ def main():
         descend_z(vertical)
 
     grip()
+    cap.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
