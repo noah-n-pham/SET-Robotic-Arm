@@ -2,17 +2,7 @@
 <robot name="three_link_arm">
 
 
-  <link name="world"/>
-
-
-  <joint name="world_to_base" type="fixed">
-    <parent link="world"/>
-    <child link="base_fixed"/>
-    <origin xyz="0 0 0" rpy="0 1.5708 0"/>
-  </joint>
-
-
-  <link name="base_fixed">
+  <link name="base_link">
     <visual>
       <geometry>
         <box size="0.01 0.01 0.01"/>
@@ -31,7 +21,16 @@
   </link>
 
 
-  <link name="base_link">
+  <joint name="base_yaw" type="revolute">
+    <parent link="base_link"/>
+    <child link="turntable"/>
+    <origin xyz="0 0 0" rpy="0 1.5708 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14" upper="3.14" effort="100" velocity="2"/>
+  </joint>
+
+
+  <link name="turntable">
     <visual>
       <geometry>
         <box size="0.1 0.1 0.1"/>
@@ -53,11 +52,11 @@
   </link>
 
 
-  <joint name="base_yaw" type="revolute">
-    <parent link="base_fixed"/>
-    <child link="base_link"/>
+  <joint name="joint1" type="revolute">
+    <parent link="turntable"/>
+    <child link="link1"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <axis xyz="0 0 1"/>
+    <axis xyz="0 1 0"/>
     <limit lower="-3.14" upper="3.14" effort="100" velocity="2"/>
   </joint>
 
@@ -86,10 +85,10 @@
   </link>
 
 
-  <joint name="joint1" type="revolute">
-    <parent link="base_link"/>
-    <child link="link1"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+  <joint name="joint2" type="revolute">
+    <parent link="link1"/>
+    <child link="link2"/>
+    <origin xyz="0 0 1.0" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
     <limit lower="-3.14" upper="3.14" effort="100" velocity="2"/>
   </joint>
@@ -117,15 +116,6 @@
       <inertia ixx="0.0834" iyy="0.0834" izz="0.00045"/>
     </inertial>
   </link>
-
-
-  <joint name="joint2" type="revolute">
-    <parent link="link1"/>
-    <child link="link2"/>
-    <origin xyz="0 0 1.0" rpy="0 0 0"/>
-    <axis xyz="0 1 0"/>
-    <limit lower="-3.14" upper="3.14" effort="100" velocity="2"/>
-  </joint>
 
 
   <link name="end_effector"/>

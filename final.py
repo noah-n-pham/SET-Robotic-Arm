@@ -11,7 +11,10 @@ import math
 # -----------------------------
 # Robot / IK Setup
 # -----------------------------
-chain = Chain.from_urdf_file("3_DOF.urdf")
+chain = Chain.from_urdf_file(
+    "3_DOF.urdf",
+    active_links_mask=[False, True, True, True, False]
+)
 print(f"Chain has {len(chain.links)} links: {[link.name for link in chain.links]}")
 
 # -----------------------------
@@ -22,10 +25,12 @@ def find_arduino_port():
     for port in ports:
         desc = port.description.lower()
         dev = port.device.lower()
-        if any(keyword in desc for keyword in ["arduino", "ch340", "cp210", "ftdi"]):
+        if any(kw in desc for kw in ["arduino", "ch340", "ch341", "cp210", "ftdi", "usb serial", "usb-serial"]):
             return port.device
-        if any(keyword in dev for keyword in ["usbmodem", "usbserial", "acm"]):
+        if any(kw in dev for kw in ["usbmodem", "usbserial", "ttyacm", "ttyusb"]):
             return port.device
+    if len(ports) == 1:
+        return ports[0].device
     return None
 
 PORT = find_arduino_port()
@@ -69,7 +74,7 @@ markerLength = 0.05
 
 
 # -----------------------------
-# Send Servo Angles (clamped to 0–180, sent as integers)
+# Send Servo Angles (clamped to 0-180, sent as integers)
 # -----------------------------
 def send_angles(angles):
     clamped = [max(0, min(180, int(round(a)))) for a in angles]
@@ -81,13 +86,14 @@ def send_angles(angles):
 
 # -----------------------------
 # Compute IK and return servo angles in degrees
+# Chain: [0]=origin, [1]=base_yaw, [2]=joint1, [3]=joint2, [4]=ee_fixed
 # -----------------------------
 def compute_servo_angles(target):
     joint_angles = chain.inverse_kinematics(target)
     return [
+        math.degrees(joint_angles[1]),
         math.degrees(joint_angles[2]),
-        math.degrees(joint_angles[3]),
-        math.degrees(joint_angles[4])
+        math.degrees(joint_angles[3])
     ]
 
 
