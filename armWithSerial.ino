@@ -3,7 +3,13 @@
 Servo servo1;
 Servo servo2;
 Servo servo3;
+
+bool gripperAttached = false;
 Servo gripperServo;
+
+// Safe microsecond limits — adjust these if your servos have a different range
+const int US_MIN = 1000;
+const int US_MAX = 2000;
 
 void setup() {
   Serial.begin(9600);
@@ -12,13 +18,14 @@ void setup() {
   servo1.attach(2);
   servo2.attach(3);
   servo3.attach(4);
-  gripperServo.attach(5);
 
-  servo1.writeMicroseconds(1000);
-  servo2.writeMicroseconds(1300);
-  servo3.writeMicroseconds(1100);
-  gripperServo.writeMicroseconds(1000);
-  delay(1000);
+  // Uncomment the next line ONLY if you have a gripper servo wired to pin 5
+  // gripperServo.attach(5); gripperAttached = true;
+
+  servo1.writeMicroseconds(1500);
+  servo2.writeMicroseconds(1500);
+  servo3.writeMicroseconds(1500);
+  delay(2000);
 
   Serial.println("Servos centered: success");
 }
@@ -30,8 +37,10 @@ void loop() {
 
     if (data == "GRIP") {
       Serial.println("Grip command received");
-      gripperServo.writeMicroseconds(2000);
-      delay(500);
+      if (gripperAttached) {
+        gripperServo.writeMicroseconds(2000);
+        delay(500);
+      }
       Serial.println("Gripper activated: success");
       return;
     }
@@ -56,9 +65,9 @@ void loop() {
       theta2 = constrain(theta2, 0, 180);
       theta3 = constrain(theta3, 0, 180);
 
-      int us1 = map(theta1, 0, 180, 500, 2500);
-      int us2 = map(theta2, 0, 180, 500, 2500);
-      int us3 = map(theta3, 0, 180, 500, 2500);
+      int us1 = map(theta1, 0, 180, US_MIN, US_MAX);
+      int us2 = map(theta2, 0, 180, US_MIN, US_MAX);
+      int us3 = map(theta3, 0, 180, US_MIN, US_MAX);
 
       Serial.println("Angles reframed: success");
 
