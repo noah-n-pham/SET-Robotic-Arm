@@ -75,10 +75,10 @@ markerLength = 0.05
 
 
 # -----------------------------
-# Send Servo Angles (clamped to 0-180, sent as integers)
+# Send Servo Angles (clamped to 0-270, sent as integers)
 # -----------------------------
 def send_angles(angles):
-    clamped = [max(0, min(180, int(round(a)))) for a in angles]
+    clamped = [max(0, min(270, int(round(a)))) for a in angles]
     msg = f"{clamped[0]},{clamped[1]},{clamped[2]}\n"
     ser.write(msg.encode())
     ser.flush()
@@ -88,13 +88,16 @@ def send_angles(angles):
 # -----------------------------
 # Compute IK and return servo angles in degrees
 # Chain: [0]=origin, [1]=base_yaw, [2]=joint1, [3]=joint2, [4]=ee_fixed
+# IK outputs 0° as neutral; physical servos have 135° as center
 # -----------------------------
+SERVO_CENTER = 135
+
 def compute_servo_angles(target):
     joint_angles = chain.inverse_kinematics(target)
     return [
-        math.degrees(joint_angles[1]),
-        math.degrees(joint_angles[2]),
-        math.degrees(joint_angles[3])
+        math.degrees(joint_angles[1]) + SERVO_CENTER,
+        math.degrees(joint_angles[2]) + SERVO_CENTER,
+        math.degrees(joint_angles[3]) + SERVO_CENTER
     ]
 
 

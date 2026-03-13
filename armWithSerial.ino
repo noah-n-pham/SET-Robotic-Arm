@@ -7,21 +7,22 @@ Servo servo3;
 bool gripperAttached = false;
 Servo gripperServo;
 
-// Safe microsecond limits — adjust these if your servos have a different range
-const int US_MIN = 1000;
-const int US_MAX = 2000;
+// RDS51150SG servo: 500-2500μs = 270°, center at 1500μs
+const int US_MIN = 500;
+const int US_MAX = 2500;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("Program start: success");
 
-  servo1.attach(2);
-  servo2.attach(3);
-  servo3.attach(4);
+  servo1.attach(2, US_MIN, US_MAX);
+  servo2.attach(3, US_MIN, US_MAX);
+  servo3.attach(4, US_MIN, US_MAX);
 
   // Uncomment the next line ONLY if you have a gripper servo wired to pin 5
   // gripperServo.attach(5); gripperAttached = true;
 
+  // 270° servos: 0°→500μs, 135°(center)→1500μs, 270°→2500μs
   servo1.writeMicroseconds(1500);
   servo2.writeMicroseconds(1500);
   servo3.writeMicroseconds(1500);
@@ -61,13 +62,13 @@ void loop() {
       int theta2 = second.toInt();
       int theta3 = third.toInt();
 
-      theta1 = constrain(theta1, 0, 180);
-      theta2 = constrain(theta2, 0, 180);
-      theta3 = constrain(theta3, 0, 180);
+      theta1 = constrain(theta1, 0, 270);
+      theta2 = constrain(theta2, 0, 270);
+      theta3 = constrain(theta3, 0, 270);
 
-      int us1 = map(theta1, 0, 180, US_MIN, US_MAX);
-      int us2 = map(theta2, 0, 180, US_MIN, US_MAX);
-      int us3 = map(theta3, 0, 180, US_MIN, US_MAX);
+      int us1 = map(theta1, 0, 270, US_MIN, US_MAX);
+      int us2 = map(theta2, 0, 270, US_MIN, US_MAX);
+      int us3 = map(theta3, 0, 270, US_MIN, US_MAX);
 
       Serial.println("Angles reframed: success");
 
